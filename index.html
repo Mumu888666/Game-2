@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <title>لعبة إكمال الكلمات الإنجليزية</title>
+  <style>
+    body {
+      background-color: #d0f0ff; /* 淡蓝色 */
+      font-family: 'Comic Sans MS', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    .game-container {
+      width: 720px;
+      height: 480px;
+      background-color: white;
+      border-radius: 20px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.2);
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    h1 {
+      color: #ff69b4;
+      font-size: 28px;
+      margin-bottom: 20px;
+    }
+
+    .word-display {
+      font-size: 36px;
+      color: #32cd32;
+      margin: 20px 0;
+    }
+
+    .options {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .option {
+      padding: 10px 20px;
+      font-size: 24px;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .lemon { background-color: #fff44f; }
+    .sky { background-color: #87ceeb; }
+    .pink { background-color: #ffb6c1; }
+    .green { background-color: #98fb98; }
+
+    .option:hover {
+      transform: scale(1.1);
+    }
+
+    .result {
+      font-size: 20px;
+      color: #444;
+      height: 30px;
+    }
+
+    .score {
+      font-size: 20px;
+      font-weight: bold;
+      color: #333;
+    }
+
+    .complete-message {
+      font-size: 28px;
+      font-weight: bold;
+      color: #ff4500;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .attempts {
+      font-size: 18px;
+      color: #555;
+      margin-bottom: 10px;
+    }
+
+    .level-indicator {
+      font-size: 20px;
+      color: #9370db;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container">
+    <h1>لعبة إكمال الكلمات الإنجليزية</h1>
+    <div class="level-indicator" id="levelIndicator">الجولة 1 من 4</div>
+    <div class="attempts" id="attempts">المحاولات المتبقية: 3</div>
+    <div class="word-display" id="wordDisplay"></div>
+    <div class="options" id="options"></div>
+    <div class="result" id="result"></div>
+    <div class="score" id="score">نسبة الإجابات الصحيحة: 0%</div>
+    <div class="complete-message" id="completeMessage">ممتاز يا نجم!</div>
+  </div>
+
+  <script>
+    const levels = [
+      {
+        word: 'Papaya',
+        display: 'P_p_ya',
+        answers: ['a', 'a'],
+        choices: [
+          ['a', 'e', 'o', 'i'],
+          ['a', 'e', 'i', 'y']
+        ]
+      },
+      {
+        word: 'Durian',
+        display: 'D_ri_n',
+        answers: ['u', 'a'],
+        choices: [
+          ['u', 'o', 'a', 'e'],
+          ['a', 'e', 'o', 'i']
+        ]
+      },
+      {
+        word: 'Blueberry',
+        display: 'Bl_ebe_ry',
+        answers: ['u', 'r'],
+        choices: [
+          ['u', 'o', 'a', 'e'],
+          ['r', 'n', 'm', 'l']
+        ]
+      },
+      {
+        word: 'Coconut',
+        display: 'Coc_n_t',
+        answers: ['o', 'u'],
+        choices: [
+          ['o', 'a', 'e', 'u'],
+          ['o', 'a', 'u', 'e']
+        ]
+      }
+    ];
+
+    let currentLevel = 0;
+    let correctAnswers = 0;
+    let totalAttempts = 0;
+    let currentAttempts = 3;
+    let selectedLetters = [];
+
+    const wordDisplay = document.getElementById('wordDisplay');
+    const optionsContainer = document.getElementById('options');
+    const resultDisplay = document.getElementById('result');
+    const scoreDisplay = document.getElementById('score');
+    const completeMessage = document.getElementById('completeMessage');
+    const attemptsDisplay = document.getElementById('attempts');
+    const levelIndicator = document.getElementById('levelIndicator');
+
+    function loadLevel() {
+      if (currentLevel >= levels.length) {
+        completeGame();
+        return;
+      }
+
+      const level = levels[currentLevel];
+      wordDisplay.textContent = level.display;
+      resultDisplay.textContent = '';
+      optionsContainer.innerHTML = '';
+      currentAttempts = 3;
+      attemptsDisplay.textContent = 'المحاولات المتبقية: 3';
+      selectedLetters = [];
+
+      levelIndicator.textContent = `الجولة ${currentLevel + 1} من ${levels.length}`;
+
+      level.choices.forEach((choiceGroup, groupIndex) => {
+        const groupDiv = document.createElement('div');
+        groupDiv.style.margin = '10px 0';
+
+        const label = document.createElement('div');
+        label.textContent = `الحرف ${groupIndex + 1}:`;
+        label.style.marginBottom = '5px';
+        groupDiv.appendChild(label);
+
+        const buttonsDiv = document.createElement('div');
+        buttonsDiv.className = 'options';
+
+        const colors = ['lemon', 'sky', 'pink', 'green'];
+        choiceGroup.forEach((ch, idx) => {
+          const btn = document.createElement('button');
+          btn.className = `option ${colors[idx % colors.length]}`;
+          btn.textContent = ch;
+          btn.onclick = () => selectLetter(ch, groupIndex);
+          buttonsDiv.appendChild(btn);
+        });
+
+        groupDiv.appendChild(buttonsDiv);
+        optionsContainer.appendChild(groupDiv);
+      });
+    }
+
+    function selectLetter(letter, groupIndex) {
+      selectedLetters[groupIndex] = letter;
+
+      const optionGroups = optionsContainer.children;
+      const currentGroup = optionGroups[groupIndex].querySelector('.options');
+      const buttons = currentGroup.querySelectorAll('button');
+
+      buttons.forEach(btn => {
+        btn.style.transform = '';
+        btn.style.boxShadow = '';
+      });
+
+      buttons.forEach(btn => {
+        if (btn.textContent === letter) {
+          btn.style.transform = 'scale(1.1)';
+          btn.style.boxShadow = '0 0 10px rgba(0,0,0,0.3)';
+        }
+      });
+
+      if (selectedLetters.length === levels[currentLevel].answers.length &&
+          selectedLetters.every(l => l !== undefined)) {
+        checkAnswer();
+      }
+    }
+
+    function checkAnswer() {
+      totalAttempts++;
+      currentAttempts--;
+      attemptsDisplay.textContent = `المحاولات المتبقية: ${currentAttempts}`;
+
+      const level = levels[currentLevel];
+      let isCorrect = true;
+
+      for (let i = 0; i < level.answers.length; i++) {
+        if (selectedLetters[i] !== level.answers[i]) {
+          isCorrect = false;
+          break;
+        }
+      }
+
+      if (isCorrect) {
+        correctAnswers++;
+        resultDisplay.textContent = '✅ إجابة صحيحة!';
+        wordDisplay.textContent = level.word;
+        updateScore();
+        setTimeout(nextLevel, 1200);
+      } else {
+        if (currentAttempts <= 0) {
+          resultDisplay.textContent = `❌ انتهت محاولاتك! الكلمة الصحيحة: ${level.word}`;
+          wordDisplay.textContent = level.word;
+          updateScore();
+          setTimeout(nextLevel, 1500);
+        } else {
+          resultDisplay.textContent = '❌ إجابة خاطئة! حاول مرة أخرى';
+        }
+      }
+    }
+
+    function nextLevel() {
+      currentLevel++;
+      if (currentLevel < levels.length) {
+        loadLevel();
+      } else {
+        completeGame();
+      }
+    }
+
+    function completeGame() {
+      completeMessage.style.display = 'block';
+      wordDisplay.textContent = '';
+      optionsContainer.innerHTML = '';
+      resultDisplay.textContent = '';
+      attemptsDisplay.textContent = '';
+      updateScore();
+    }
+
+    function updateScore() {
+      const rate = Math.round((correctAnswers / totalAttempts) * 100);
+      scoreDisplay.textContent = `نسبة الإجابات الصحيحة: ${rate}%`;
+    }
+
+    loadLevel();
+  </script>
+</body>
+</html>
